@@ -18,8 +18,8 @@ More information on NFCI can be found here: https://www.chicagofed.org/research/
 
 My objective is to distinguish between four distinct macro-credit regimes for portfolio rebalancing, rather than a single continuous measure of financial tightness. So, in addition to NFCI, we'll also use these inputs:
 
-1. High-yield and investment-grade credit spreads
-Credit spreads are a primary market-based indicator of credit conditions. Tighter spreads reflect strong liquidity conditions, low perceived default risk, and elevated risk appetite, while widening spreads indicate deteriorating credit conditions and increased compensation demanded by investors for credit risk.
+1. High-yield and investment-grade credit option-adjusted spreads.
+Credit spreads are a primary market-based indicator of credit conditions. Tighter spreads reflect strong liquidity conditions, low perceived default risk, and elevated risk appetite, while widening spreads indicate deteriorating credit conditions and increased compensation demanded by investors for credit risk. "Option-adjusted" accounts for the fact that some of the corporate bonds considered in the index have embedded options, such as being callable.
 
 2. CPI inflation
 Inflation is not a direct measure of credit conditions, but it plays a key role in shaping financial conditions through its impact on real interest rates and central bank policy. It therefore acts as an important macroeconomic input into the credit cycle rather than a direct credit market signal.
@@ -34,7 +34,7 @@ Corporate default rates provide a lagging but fundamental indicator of credit st
 The federal funds rate is a monetary policy instrument set by the Federal Reserve in response to macroeconomic conditions such as inflation, employment, and financial stability. While it strongly influences credit conditions, it is an endogenous policy response rather than a direct market-based indicator.
 
 6. Yield curve (2-year vs 10-year)
-The yield curve captures expectations of monetary policy and long-term economic growth. The 2-year yield is closely linked to expectations of short-term policy rates, while the 10-year yield reflects long-term growth and inflation expectations as well as term premium. Inversions of the curve are often associated with tightening financial conditions and increased recession risk.
+The yield curve captures expectations of monetary policy and long-term economic growth. The 2-year yield is closely linked to expectations of short-term policy rates, while the 10-year yield reflects long-term growth and inflation expectations as well as term premium. Famously, a negative spread between 2Y and 10Y yields is considered a recession signal.
     
 These inputs are all achieveable in Python, and to avoid any confusion further down the line, we're going to extend our analysis on monthly data from January 2016 to January 2026. Where data is received daily, we'll resample to a monthly average, and where it is quarterly (possibly for the default rates), we'll be rolling-forward intra-quarter. 
 
@@ -53,7 +53,13 @@ My first goal is to set up this simple framework, and then to decide how it shou
 
 04/05/2026
 
-Main goals today are to get all the data I need into Python, clean it, and ensure all data is sampled/resampled to monthly data.
+The main task today is to begin. We want to load our data from FREDAPI and yfinance, clean and resample and then produce some plots of the data. This isn't a huge task, but getting it right is key to the rest of the project running smoothly. Producing plots of the data in the first instance is important too, as it allows us to quickly identify any issues with our data process.
+
+I've produced two plots: 
+
+<img width="2100" height="1800" alt="image" src="https://github.com/user-attachments/assets/a2f157ba-93fe-4a72-bb77-bfa9fece0cce" />
+
+
 
 
 

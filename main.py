@@ -84,6 +84,53 @@ for i, (col, (title, ylabel)) in enumerate(series_info.items()):
     ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("time_series_plots.png", dpi=150)
+plt.savefig("time_series_plots_true.png", dpi=150)
 plt.show()
 
+# ----------------------------
+# Resample all series to monthly
+# ----------------------------
+df_monthly = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq='MS'))
+
+for col in df_all.columns:
+    series = df_all[col].dropna()
+    
+    # Detect frequency by looking at median gap between observations
+    if len(series) < 2:
+        continue
+    
+    gaps = series.index.to_series().diff().dt.days.dropna()
+    median_gap = gaps.median()
+    
+    if median_gap <= 7:
+        # Daily → resample to monthly mean
+        monthly = series.resample('MS').mean()
+    elif median_gap <= 35:
+        # Already monthly → resample to align to month-start
+        monthly = series.resample('MS').mean()
+    else:
+        # Quarterly (or lower frequency) → forward-fill across months
+        monthly = series.resample('MS').ffill()
+    
+    df_monthly[col] = monthly
+
+df_monthly = df_monthly.dropna(how='all')
+
+# ----------------------------
+# Plot monthly resampled series
+# ----------------------------
+fig2, axes2 = plt.subplots(nrows=4, ncols=2, figsize=(14, 12))
+axes2 = axes2.flatten()
+
+for i, (col, (title, ylabel)) in enumerate(series_info.items()):
+    ax = axes2[i]
+    data = df_monthly[col].dropna()
+    ax.plot(data.index, data.values, linewidth=1.2)
+    ax.set_title(f"{title} (Monthly)", fontsize=11, fontweight="bold")
+    ax.set_ylabel(ylabel, fontsize=9)
+    ax.tick_params(axis="x", rotation=30)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("time_series_plots_monthly.png", dpi=150)
+plt.show()

@@ -55,12 +55,16 @@ My first goal is to set up this simple framework, and then to decide how it shou
 
 The main task today is to begin. We want to load our data from FREDAPI and yfinance, clean and resample and then produce some plots of the data. This isn't a huge task, but getting it right is key to the rest of the project running smoothly. Producing plots of the data in the first instance is important too, as it allows us to quickly identify any issues with our data process.
 
-I've produced two plots: 
+I've produced a subplot of the raw data using matplotlib, see below: 
 
 <img width="2100" height="1800" alt="image" src="https://github.com/user-attachments/assets/a2f157ba-93fe-4a72-bb77-bfa9fece0cce" />
 
 
+And immediately, some issues are apparent, hence the importance of plotting:
 
+1. Our OAS data doesn't extend back to 2010. Its bad luck, but it seems FRED started only reporting 3 years back in time for these indices in April 2026. I checked indices.ice.com and found that the indices go all the way back to the 90's. We can actually view this data in grid format back to 2016. My thinking is that the inclusion of OAS's is important for my analysis - its a market-driven indicator of credit stress and underpins a lot of institutional financing decisions. Because of this, I'm going to rudimentarily extract the OAS's from indices.ice.com for both indices, starting from 01/06/2016 (ICE only lets you have exactly max 10 years...annoying!) up to 31/12/2025, and then shift the time ranges of the whole project to be between those dates. 
+
+2. 
 
 
 

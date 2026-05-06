@@ -20,8 +20,9 @@ fred = Fred(api_key=FRED_API_KEY)
 # ----------------------------
 # Config
 # ----------------------------
-start_date = "2010-01-01"
+start_date = "2016-01-01"
 end_date = "2026-01-01"
+cpi_start_date = "2015-01-01"  # 12 months early to allow MoM rolling without losing 2016 data
 
 # ----------------------------
 # FRED series
@@ -29,7 +30,6 @@ end_date = "2026-01-01"
 fred_series = {
     "hy_spread": "BAMLH0A0HYM2",
     "ig_spread": "BAMLC0A0CM",
-    "cpi": "CPIAUCSL",
     "fed_funds": "FEDFUNDS",
     "yield_curve": "T10Y2Y",
     "nfci": "NFCI",
@@ -40,6 +40,10 @@ df_fred = pd.DataFrame({
     name: fred.get_series(code, observation_start=start_date, observation_end=end_date)
     for name, code in fred_series.items()
 })
+
+# Fetch CPI separately with extended start
+cpi_series = fred.get_series("CPIAUCSL", observation_start=cpi_start_date, observation_end=end_date)
+df_fred["cpi"] = cpi_series
 
 # ----------------------------
 # Market data
@@ -63,7 +67,7 @@ df_all = df_fred.join(df_market, how="outer")
 series_info = {
     "hy_spread": ("High Yield Spread", "Spread (%)"),
     "ig_spread": ("Investment Grade Spread", "Spread (%)"),
-    "cpi": ("CPI (All Urban Consumers)", "Index"),
+    "cpi": ("CPI YoY Inflation", "% Change (YoY)"),
     "fed_funds": ("Federal Funds Rate", "Rate (%)"),
     "yield_curve": ("10Y-2Y Treasury Spread", "Spread (%)"),
     "nfci": ("Chicago Fed NFCI", "Index"),
@@ -90,31 +94,29 @@ plt.show()
 # ----------------------------
 # Resample all series to monthly
 # ----------------------------
-df_monthly = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq='MS'))
+df_monthly_raw = pd.DataFrame(index=pd.date_range(start=cpi_start_date, end=end_date, freq='MS'))
 
 for col in df_all.columns:
     series = df_all[col].dropna()
     
-    # Detect frequency by looking at median gap between observations
     if len(series) < 2:
         continue
     
     gaps = series.index.to_series().diff().dt.days.dropna()
     median_gap = gaps.median()
     
-    if median_gap <= 7:
-        # Daily → resample to monthly mean
-        monthly = series.resample('MS').mean()
-    elif median_gap <= 35:
-        # Already monthly → resample to align to month-start
+    if median_gap <= 35:
         monthly = series.resample('MS').mean()
     else:
-        # Quarterly (or lower frequency) → forward-fill across months
         monthly = series.resample('MS').ffill()
     
-    df_monthly[col] = monthly
+    df_monthly_raw[col] = monthly
 
-df_monthly = df_monthly.dropna(how='all')
+# Convert CPI to MoM % change then trim to main start_date
+df_monthly_raw["cpi"] = df_monthly_raw["cpi"].pct_change(1) * 100
+
+# Final clean monthly dataframe trimmed to your actual study period
+df_monthly = df_monthly_raw.loc[start_date:].dropna(how='all')
 
 # ----------------------------
 # Plot monthly resampled series

@@ -62,9 +62,26 @@ I've produced a subplot of the raw data using matplotlib, see below:
 
 And immediately, some issues are apparent, hence the importance of plotting:
 
-1. Our OAS data doesn't extend back to 2010. Its bad luck, but it seems FRED started only reporting 3 years back in time for these indices in April 2026. I checked indices.ice.com and found that the indices go all the way back to the 90's. We can actually view this data in grid format back to 2016. My thinking is that the inclusion of OAS's is important for my analysis - its a market-driven indicator of credit stress and underpins a lot of institutional financing decisions. Because of this, I'm going to rudimentarily extract the OAS's from indices.ice.com for both indices, starting from 01/06/2016 (ICE only lets you have exactly max 10 years...annoying!) up to 31/12/2025, and then shift the time ranges of the whole project to be between those dates. 
+1. Our OAS data doesn't extend back to 2010. Its bad luck, but it seems FRED started only reporting 3 years back in time for these indices in April 2026. I checked indices.ice.com and found that the indices go all the way back to the 90's. We can actually view this data in grid format back to 2016. My thinking is that the inclusion of OAS's is important for my analysis - its a market-driven indicator of credit stress and underpins a lot of institutional financing decisions. Because of this, I'm going to extract the OAS's manually from indices.ice.com for both indices, starting from 01/06/2016 (ICE only lets you have exactly max 10 years...annoying!) up to 31/12/2025, and then shift the time ranges of the whole project to be between those dates.
 
-2. 
+2. Our CPI figures are the actual index values - we want rolling 12-month changes, so we'll need to add that into our code.
+
+3. Our loan delinquency rate is skewed towards 2010, which makes sense as its post-GFC. Given in point 1 we're shifting our time dimension forward, I think we'll be able to remove this skew when we start at 2016.
+
+4. Similar point to 3, but the federal funds rate data is skewed towards more recent years. We can makes sense of that as the post-GFC era ushered in a period of ultra-low interest rates. Again, once we switch the time period forward, we should remove these issues.
+
+
+06/05/2026
+
+To do:
+- Shift time period forward to begin at 01/01/2016
+- Extract OAS's from ICE, store in an Excel and load to Python
+- Convert CPI to rolling 12-month figures.
+- Convert all other data to be monthly figures, averaging for daily data and rolling intra-quarter for quarterly data.
+
+
+
+
 
 
 

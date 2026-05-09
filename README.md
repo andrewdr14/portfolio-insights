@@ -100,6 +100,114 @@ To recap where we are:
 
 
 
+08/05/2026
+
+Notes on literature: https://info.loomissayles.com/hubfs/Unlocking%20the%20Credit%20Cycle_2024.pdf
+
+- Factors driving cycle; who is borrowing/spending, financial intermediary balance sheets, risk appetite, profits, incomes and liquidity
+  Should we be including some of these factors into my analysis? Relate to bank balance sheets / profits?
+- Countries go through different phases of credit cycle at different times  - this creates relative value opportunities. Relative value opps are investment strategies profiting off pricing inconsistencies between related assets (go long / short, market neutral, arbitrage and pairs trading)
+- Are companies currently managing their balance sheets to entice equity holders or credit holders? Key question
+  a. When savings are high in an economy, borrowing is easier, equity shareholders hold sway on balance sheets - investment spending is favoured and asset prices inflate, more risk-taking
+  b. Eventually, excess capacity from investment (thought: AI build out, data centers, excess capacity there?) can lead to weak cashflow, earnings collapse, asset prices fall, savings decline - debt holders hold sway on balance sheets now, as companies look to enforce capital discipline
+
+- So we have a sway of who companies favour between equity holders and debt holders. In risk-taking, high profit time, its the equity-holders, during bad times, its the debt holders (makes sense).
+- Tracking global savings rates, we can see how it tracks financial crises - savings peak at zenith of the 2008 boom (equity shareholders favoured), then crashes down during the crisis (debt holders favoured)
+- Financial intermediaries are the engine of credit creation - we need data on those. When debt funding conditions are good, they lend, fuel investment spending, high asset prices, and vice versa.
+- Financial intermediary balance sheets are procyclical with the credit cycle; they move in step. A boom phase of the credit cycle is of course driven by the choices of financial intermediaries to lend more.
+  
+- Downturn:
+  a. Interest rates rise, recessions in economies (tracking interest rates)
+  b. Investors seek safety, especially those with illiquid, risky assets (shift to value, real estate too possibly, utilities, large cap)
+  c. Profits/incomes collapse, lending tightens, low debt growth (can we track these somehow?)
+  d. Spreads blow out, financial intermediaries shrink balance sheets (credit spreads tracked, but possibly need bank lending stats)
+  e. Eventually, interest rates are cut to stimulate growth, and liquidity measures introduced by central bank too, such as QE or possibly swap lines to other countries (tracking interest rates, could we also look at central bank QE/QT, or other measures?)
+
+- Credit Repair:
+  a. Companies now seeking to improve balance sheets, so favouring debt holders
+  b. Layoffs, cost-cuts, build up cash, cut capex, sell assets (deleveraging)
+  c. Credit spreads could begin to tighten, given liqudity is rising and getting high due to investors exiting risky/illiquids in favour of safe havens, liquid assets + central bank measures
+  d. Credit spread tightening would support corporate bond returns, so a shift into corporates here could work
+
+- Recovery:
+  a. Profits start to increase faster than debt
+  b. Credit are tighter and equities begin to outperform
+  c. Corporate deleveraging underway
+  d. Lending standards ease, central banks ease off, liquidity rises 
+
+- Expansion to Late Cycle
+  a. Profits begin to fade, but equities still outperform and shareholders demand high RoE
+  b. Interest rates rise, and central banks begin to tighten
+  c. Financial intermediary balance sheets expand
+  d. May see more innovative liquidity mechanisms, such as derivates, repos (at their heart, they're still methods of borrowing short and lending long, but in more opaque, illiquid ways)
+
+This research from Loomis has given me further insight into the credit cycle and its dynamics. Not only that, it has shown that I should probably be tracking a few more metrics, some thoughts:
+
+1. We're going to change how we track IG and HY spreads. Instead, we'll look at the differential between them and just one spread in the actual model we create. T
+   HY > IG always, but the change in that differential could be useful. This differential represents the compensation for taking on the excess credit risk from HY debt. An expansion of that compensation could mean two things:
+   HY spreads widen, while IG relatively stable, indicating stress in the riskiest part of the market - early late cycle?
+   HY stable, IG compresses, strong balance sheets in best companies - recovery/expansion
+
+   A compression would mean two things too: HY compress, while IG stable, again recovery/expansion. HY stable, while IG widens would mean late cycle / downturn.
+
+2. We need some more data on financial intermediary balance sheets, corporate profits/debt/cash, and possibly some liquidity measures - could be useful to look at M1/2/3/4 in the economy data
+
+
+09/05/2026
+
+Todo/Thoughts:
+
+1. Construct HY - IG differential as a MoM rate of change, and retain HY spread index
+2. Check FRED and find what data we could use related to balance sheets, profits, liquidity etc. We need to bare in mind that some of these indicators may be used in NFCI already - so we wont want to use them twice!
+3. I'm thinking to remove the federal funds rate, it probably shouldnt be in my analysis at all. Consider what I'm trying to do here - construct my own indicator of credit conditions in the US economy, and use that (with credit cycle knowledge) to rebalance a long-only ETF portfolio. The federal funds rate is not market driven, its a policy response based on the Feds mandate of stable inflation and high employment. It changes due to different reasons, not solely on credit conditions (it could be supply shocks, as relevant today). Its also not market driven, and can be a response to credit conditions, so its not an indicator of credit conditions per se. It could be useful to include in the analysis, maybe as a binary indicator, whether we're in a rate cutting or rate hiking cycle, but not within the indicator itself. If we look at a value from the indicator at a certain time, we could also consider the regime of interest rates we are in - are the fed raising them or reducing them? (the level doesnt matter). Or, we can cut our CCI readings into regimes - cutting, hiking, stable.
+
+4. Another idea - we could look at some point whether these series are leading/lagging indicators of one another. We can do this using correlation, by lagging one index and then checking the correlation with another non-lagged index. Theres also a test called Granger Causality that is commonly used in econometrics to determine leading/lagging indicators. I'm warned the using the term causality here is dangerous, and that people prefer "predictive causality" as true causality runs into philosophical issues that I'm not qualified enough to discuss.
+5. Across all the data I have, there is a clear outlier which is Covid. It caused spikes/collapses in different indices. This is a clear stressed credit scenario thats going to be baked into our model. I'm wondering how to deal with the data for this, because I'm wondering whether it makes sense to rebalance into a stressed credit event such as this - its a kneejerk reaction. We'd be selling into a panicked market, experiencing large mark downs on our ETF's. There'd be no indicator for an event like Covid in any of the financial metrics we have, as it was a shock that nobody saw coming. How do we want to deal with this? We could keep it in, and add logic for rebalancing later down the line to do no rebalancing in these stressed events. It also depends on the amount of rebalancing we want to do.. if its every month, then sure we'll be rebalancing through Covid - seems dangerous - but if its every c.6 months, then the model could choose not to rebalance upon a stress event it detects, then waits 6 months, then rebalances (this works for Covid, which was at its worst from Feb to August 2021). To not have Covid skew out distributional statistics, we'll likely need to Winsorize our data too. These are just some thoughts to dissect later on down the line.
+
+Lets review our cleaned data anyway. Here is what we are using (all eventually resampled to be monthly)
+
+1. High Yield Spread - US Corporates, daily data
+2. Investment Grade Spread - US Corporates, daily data 
+3. HY-IG Spread Differential - difference between 1) and 2) on daily data, turned into a monthly mean, then MoM % difference
+4. CPI 12-Month Rolling Inflation
+   a. Monthly data, then a 12 month rolling figure
+   b. https://fred.stlouisfed.org/series/CPIAUCSL
+   c. Seasonally adjusted, representing purchases of 88% of US population, prices of a wide ranging basket of goods/services
+6. M2 12-Month Rolling Growth - monthly data, then a 12 month rolling figure
+   a. Monthly data, then a 12 month rolling figure
+   b. https://fred.stlouisfed.org/series/M2SL
+   c. M1 = paper money and coins + deposits at banks (most liquid, convertible quickly to cash)
+   d. M2 = M1 + retail money market funds + IRA's + CD's (<$100,000)
+8. 10Y-2Y Treasury Spread
+   a. 10 Year - 2 Year treasury yield, daily data
+   b. Normally, 2 year < 10 year, as lending money for longer incurs higher interest payments
+   c. But, an inversion of this yield curve is generally considered a recessionary warning. If it inverts, this means that the 2 year yield now exceeds the 10 year yield. It can be driven by a number of things - purchases of the 10 year treasury (safe haven), driving down the yield, as people fear a market selloff. The fed could be hiking rates, which increases the 2Y yield more than the 10Y yield. There could be fears about future growth/inflation, which drives the 10Y yield down in expectation of lower future rates.
+10. Chicago Fed NFCI
+    a. Net Financial Conditions Indicator
+12. VIX Volatility Index
+13. Delinquency Rate On All Loans
+14. Net % of Banks Tightening C&I Lending Standards
+15. Net % of Banks Reporting Stronger C&I Loan Demand
+16. Commercial & Industrial Loans (MoM Change)
+17. Total Business Inventories-to-Sales Ratio         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

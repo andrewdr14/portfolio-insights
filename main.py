@@ -21,19 +21,40 @@ fred = Fred(api_key=FRED_API_KEY)
 # Config
 # ----------------------------
 start_date = "2016-01-01"
-end_date = "2026-01-01"
-cpi_start_date = "2015-01-01"  # 12 months early to allow MoM rolling without losing 2016 data
+end_date = "2025-03-31"
+cpi_start_date = "2015-01-01"  # 12 months early to support 12-month rolling calc without losing 2016 data
 
 # ----------------------------
-# FRED series
+# Load HY / IG spreads from local txt files
+# ----------------------------
+def load_spread_txt(filepath):
+    df = pd.read_csv(
+        filepath,
+        sep="\t",
+        header=None,
+        names=["date", "value"],
+        parse_dates=["date"],
+        na_values=["."]
+    )
+    return df.set_index("date")["value"].dropna()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+hy_spread = load_spread_txt(os.path.join(BASE_DIR, "ICE Data", "H0A0.txt"))
+ig_spread = load_spread_txt(os.path.join(BASE_DIR, "ICE Data", "C0A0.txt"))
+
+# ----------------------------
+# FRED series (CPI/M2 excluded — fetched separately with extended start)
 # ----------------------------
 fred_series = {
-    "hy_spread": "BAMLH0A0HYM2",
-    "ig_spread": "BAMLC0A0CM",
-    "fed_funds": "FEDFUNDS",
-    "yield_curve": "T10Y2Y",
-    "nfci": "NFCI",
-    "default": "DRALACBN"
+    "yield_curve":     "T10Y2Y",
+    "nfci":            "NFCI",
+    "default":         "DRALACBN",
+    "loan_standards":  "DRTSCILM",
+    "loan_demand":     "DRSDCILM",
+    "c_and_i_loans":   "TOTCI",
+    "inv_sales_ratio": "ISRATIO",
+    "household_dsr":      "TDSP"
 }
 
 df_fred = pd.DataFrame({
@@ -41,16 +62,24 @@ df_fred = pd.DataFrame({
     for name, code in fred_series.items()
 })
 
-# Fetch CPI separately with extended start
-cpi_series = fred.get_series("CPIAUCSL", observation_start=cpi_start_date, observation_end=end_date)
-df_fred["cpi"] = cpi_series
+# CPI and M2 fetched with extended start for 12-month rolling warmup
+df_fred["cpi"]       = fred.get_series("CPIAUCSL", observation_start=cpi_start_date, observation_end=end_date)
+df_fred["m2_growth"] = fred.get_series("M2SL",     observation_start=cpi_start_date, observation_end=end_date)
+
+#Fed funds fetched separately, as not a CCI component, but a regime indicator
+df_fred["fed_funds"] = fred.get_series("FEDFUNDS",     observation_start=start_date, observation_end=end_date)
+
+
+# ICE spreads — all constructed on daily data
+df_fred["hy_spread"]    = hy_spread
+df_fred["ig_spread"]    = ig_spread
+df_fred["hy_ig_spread"] = hy_spread - ig_spread
 
 # ----------------------------
 # Market data
 # ----------------------------
 vix = yf.download("^VIX", start=start_date, end=end_date)["Close"]
 
-# Flatten column index if MultiIndex (yfinance sometimes returns this)
 if isinstance(vix, pd.DataFrame):
     vix = vix.squeeze()
 
@@ -62,33 +91,44 @@ df_market = pd.DataFrame({"vix": vix})
 df_all = df_fred.join(df_market, how="outer")
 
 # ----------------------------
-# Plot all time series
+# Series metadata (used for both plots)
 # ----------------------------
 series_info = {
-    "hy_spread": ("High Yield Spread", "Spread (%)"),
-    "ig_spread": ("Investment Grade Spread", "Spread (%)"),
-    "cpi": ("CPI YoY Inflation", "% Change (YoY)"),
-    "fed_funds": ("Federal Funds Rate", "Rate (%)"),
-    "yield_curve": ("10Y-2Y Treasury Spread", "Spread (%)"),
-    "nfci": ("Chicago Fed NFCI", "Index"),
-    "vix": ("VIX Volatility Index", "Index"),
-    "default": ("Delinquency Rate On All Loans", "Rate (%)")
+    "hy_spread":       ("High Yield Spread (H0A0)",                          "Spread (%)"),
+    "ig_spread":       ("Investment Grade Spread (C0A0)",                    "Spread (%)"),
+    "hy_ig_spread":    ("HY-IG Spread Differential (MoM Change)",             "% Change (MoM)"),
+    "cpi":             ("CPI 12-Month Rolling Inflation",                     "% Change (YoY)"),
+    "m2_growth":       ("M2 12-Month Rolling Growth",                         "% Change (YoY)"),
+    "yield_curve":     ("10Y-2Y Treasury Spread",                             "Spread (%)"),
+    "nfci":            ("Chicago Fed NFCI",                                   "Index"),
+    "vix":             ("VIX Volatility Index",                               "Index"),
+    "default":         ("Delinquency Rate On All Loans",                      "Rate (%)"),
+    "loan_standards":  ("Net % of Banks Tightening C&I Lending Standards",   "Net % of Banks"),
+    "loan_demand":     ("Net % of Banks Reporting Stronger C&I Loan Demand", "Net % of Banks"),
+    "c_and_i_loans":   ("Commercial & Industrial Loans (MoM Change)",        "% Change (MoM)"),
+    "inv_sales_ratio": ("Total Business Inventories-to-Sales Ratio",         "Ratio"),
+    "household_dsr":   ("Household Debt-Income Ratio (Mortage + Consumer)",         "Ratio")
 }
 
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(14, 12))
-axes = axes.flatten()
+# ----------------------------
+# Plot 1 — raw data (pre-resample, QA purposes)
+# ----------------------------
+fig1, axes1 = plt.subplots(nrows=5, ncols=3, figsize=(18, 16))
+axes1 = axes1.flatten()
 
 for i, (col, (title, ylabel)) in enumerate(series_info.items()):
-    ax = axes[i]
+    ax = axes1[i]
     data = df_all[col].dropna()
     ax.plot(data.index, data.values, linewidth=1.2)
-    ax.set_title(title, fontsize=11, fontweight="bold")
-    ax.set_ylabel(ylabel, fontsize=9)
+    ax.set_title(f"{title} (Raw)", fontsize=10, fontweight="bold")
+    ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(axis="x", rotation=30)
     ax.grid(True, alpha=0.3)
 
+axes1[-1].set_visible(False)
+
 plt.tight_layout()
-plt.savefig("time_series_plots_true.png", dpi=150)
+plt.savefig(os.path.join(BASE_DIR, "Data", "plots_raw.png"), dpi=150)
 plt.show()
 
 # ----------------------------
@@ -98,41 +138,73 @@ df_monthly_raw = pd.DataFrame(index=pd.date_range(start=cpi_start_date, end=end_
 
 for col in df_all.columns:
     series = df_all[col].dropna()
-    
+
     if len(series) < 2:
         continue
-    
+
     gaps = series.index.to_series().diff().dt.days.dropna()
     median_gap = gaps.median()
-    
+
     if median_gap <= 35:
         monthly = series.resample('MS').mean()
     else:
         monthly = series.resample('MS').ffill()
-    
+
     df_monthly_raw[col] = monthly
 
-# Convert CPI to MoM % change then trim to main start_date
-df_monthly_raw["cpi"] = df_monthly_raw["cpi"].pct_change(1) * 100
+# Convert CPI and M2 to 12-month rolling % change (applied after resampling to monthly)
+df_monthly_raw["cpi"]       = df_monthly_raw["cpi"].pct_change(12) * 100
+df_monthly_raw["m2_growth"] = df_monthly_raw["m2_growth"].pct_change(12) * 100
 
-# Final clean monthly dataframe trimmed to your actual study period
+# Convert C&I loans and HY-IG spread to MoM % change (applied after resampling to monthly)
+df_monthly_raw["c_and_i_loans"] = df_monthly_raw["c_and_i_loans"].pct_change(1) * 100
+df_monthly_raw["hy_ig_spread"] = df_monthly_raw["hy_ig_spread"].pct_change(1) * 100
+
+
+# Trim to study period — drops warmup rows and any all-NaN rows
 df_monthly = df_monthly_raw.loc[start_date:].dropna(how='all')
 
 # ----------------------------
-# Plot monthly resampled series
+# Plot 2 — monthly resampled data
 # ----------------------------
-fig2, axes2 = plt.subplots(nrows=4, ncols=2, figsize=(14, 12))
+fig2, axes2 = plt.subplots(nrows=5, ncols=3, figsize=(18, 16))
 axes2 = axes2.flatten()
 
 for i, (col, (title, ylabel)) in enumerate(series_info.items()):
     ax = axes2[i]
     data = df_monthly[col].dropna()
     ax.plot(data.index, data.values, linewidth=1.2)
-    ax.set_title(f"{title} (Monthly)", fontsize=11, fontweight="bold")
-    ax.set_ylabel(ylabel, fontsize=9)
+    ax.set_title(f"{title} (Monthly Avg)", fontsize=10, fontweight="bold")
+    ax.set_ylabel(ylabel, fontsize=8)
     ax.tick_params(axis="x", rotation=30)
     ax.grid(True, alpha=0.3)
 
+axes2[-1].set_visible(False)
+
 plt.tight_layout()
-plt.savefig("time_series_plots_monthly.png", dpi=150)
+plt.savefig(os.path.join(BASE_DIR, "Data", "plots_monthly.png"), dpi=150)
 plt.show()
+
+# ----------------------------
+# Rate cycle overlay (sits alongside CCI, not part of it)
+# ----------------------------
+fed_funds_monthly = df_monthly_raw["fed_funds"].dropna()
+fed_funds_chg = fed_funds_monthly.diff()
+
+threshold = 0.05  # 5bps — filters rounding noise
+
+rate_cycle = pd.Series(0, index=fed_funds_monthly.index)
+rate_cycle[fed_funds_chg >  threshold] =  1   # hiking
+rate_cycle[fed_funds_chg < -threshold] = -1   # cutting
+
+# Forward fill through on-hold months so a pause doesn't break a cycle
+rate_cycle = rate_cycle.replace(0, np.nan).ffill().fillna(0).astype(int)
+
+# Trim to study period and attach to df_monthly
+df_monthly["rate_cycle"] = rate_cycle.loc[start_date:]
+
+# ----------------------------
+# Export monthly data for use in other scripts
+# ----------------------------
+df_monthly.to_csv(os.path.join(BASE_DIR, "Data", "df_monthly.csv"))
+

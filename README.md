@@ -10,28 +10,24 @@ This personal project will be to achieve a few things:
 
 A Framework For Understanding Current Credit Conditions
 
-There are a number of indicators that can provide insight into the state of credit conditions. Credit spreads are the most familiar and directly observable, but we can also incorporate default rates, debt issuance trends, CDS pricing, and broader macro-financial variables. The Chicago Fed National Financial Conditions Index (NFCI) provides a useful high-level summary of financial conditions, indicating whether they are loose (negative) or tight (positive) relative to historical averages.
-
-While this will be included as part of the overall indicator set, it will not be the central driver of the framework. This is because it aggregates multiple dimensions of financial conditions into a single measure, limiting interpretability across different types of credit stress (e.g. spread widening versus liquidity tightening). In addition, it tends to smooth and confirm shifts in financial conditions rather than isolate the specific drivers or timing of regime changes. 
-
-More information on NFCI can be found here: https://www.chicagofed.org/research/data/nfci/about
+There are a number of indicators that can provide insight into the state of credit conditions. Credit spreads are the most familiar and directly observable, but we can also use default rates, debt issuance trends, CDS pricing, and broader macro-financial variables. The Chicago Fed National Financial Conditions Index (NFCI) provides a useful high-level summary of financial conditions, indicating whether they are loose (negative) or tight (positive) relative to historical averages. More information on NFCI can be found here: https://www.chicagofed.org/research/data/nfci/about
 
 My objective is to distinguish between four distinct macro-credit regimes for portfolio rebalancing, rather than a single continuous measure of financial tightness. So, in addition to NFCI, we'll also use these inputs:
 
-1. High-yield and investment-grade credit option-adjusted spreads.
+1. High-yield and investment-grade credit option-adjusted spreads over Treasuries.
 Credit spreads are a primary market-based indicator of credit conditions. Tighter spreads reflect strong liquidity conditions, low perceived default risk, and elevated risk appetite, while widening spreads indicate deteriorating credit conditions and increased compensation demanded by investors for credit risk. "Option-adjusted" accounts for the fact that some of the corporate bonds considered in the index have embedded options, such as being callable.
 
 2. CPI inflation
-Inflation is not a direct measure of credit conditions, but it plays a key role in shaping financial conditions through its impact on real interest rates and central bank policy. It therefore acts as an important macroeconomic input into the credit cycle rather than a direct credit market signal.
+Inflation is not a direct measure of credit conditions, but it plays a key role in shaping financial conditions through its impact on real interest rates and central bank policy. It is an important macro input into the credit cycle rather than a direct credit market signal.
 
 3. VIX (equity implied volatility)
-The VIX measures implied volatility derived from S&P 500 options, reflecting market expectations of near-term equity risk. Elevated levels are typically associated with risk-off environments and tighter financial conditions, although it is more sensitive to equity market stress than credit-specific dynamics.
+The VIX measures implied volatility derived from S&P 500 options, reflecting market expectations of near-term equity risk. Spikes in the VIX usually mean risk-off environments and tighter financial conditions. Its closely linked to stress in equity markets, but does generally provide indication on market stress/risk.
 
 4. Default rates
-Corporate default rates provide a lagging but fundamental indicator of credit stress. Rising defaults confirm that prior tightening in financial conditions has transmitted into the real economy and corporate balance sheets.
+Corporate default rates provide a lagging but fundamental indicator of credit stress. Rising defaults confirm that previous tightening in financial conditions has passed through into the real economy and corporate balance sheets. Given it is a lagging indicator, we'll need to think carefully about how it will influence portfolio rebalancing decisions.
 
 5. Federal funds rate
-The federal funds rate is a monetary policy instrument set by the Federal Reserve in response to macroeconomic conditions such as inflation, employment, and financial stability. While it strongly influences credit conditions, it is an endogenous policy response rather than a direct market-based indicator.
+The federal funds rate is a monetary policy instrument set by the Federal Reserve in response to macroeconomic conditions such as inflation, employment, and financial stability. It strongly influences credit conditions, but it is not an indicator, rather a response to market conditions.
 
 6. Yield curve (2-year vs 10-year)
 The yield curve captures expectations of monetary policy and long-term economic growth. The 2-year yield is closely linked to expectations of short-term policy rates, while the 10-year yield reflects long-term growth and inflation expectations as well as term premium. Famously, a negative spread between 2Y and 10Y yields is considered a recession signal.
@@ -189,7 +185,100 @@ Lets review our cleaned data anyway. Here is what we are using (all eventually r
 14. Net % of Banks Tightening C&I Lending Standards
 15. Net % of Banks Reporting Stronger C&I Loan Demand
 16. Commercial & Industrial Loans (MoM Change)
-17. Total Business Inventories-to-Sales Ratio         
+17. Total Business Inventories-to-Sales Ratio
+18. Househould Debt-Income ratio (Consumer and Mortgage debt)
+
+10/05/2026
+
+I want to take a moment and pause from my main project here and take a look at something I've been thinking about. I was inspired to look at this by reading a Howard Marks memo - he spoke about the spread between high-yield debt and treasuries and how that relates to the credit risk reward investors are demanding for it to be financially viable for them to invest in high yield debt. His reasoning was this:
+
+1. Given that the expected (mean) loss for investing in high yield debt should be Probability of Default * (1-Recovery Rate on Default), we should expect the additional reward for taking on that default risk to be equal to that.
+2. If the spread exceeds that back-of-the-envelope calculation of expected loss, then high-yield debt is cheap, and vice versa.
+3. I want to take a look at this, but possibly take it further.  Heres what I want to examine:
+   a. We have HY-Treasury and IG-Treasury spread data.
+   b. HY-IG Spread = HY-Treasury Spread - IG-Treasury Spread (we've already done this earlier)
+   c. What does that spread capture? High-yield debt has a higher default risk, but its also less liquid, more opaque in terms of financial reporting, carries higher risk during economic downturns (procyclicality).
+   d. What I want to do is attribute the spread we've calculated for HY-IG to the various risk factors, beginning with the largest, which is surely default risk. What we should expect to see is that the spread between HY-IG exceeds that of default risk to account for the other risks I mentioned.
+   e. The best I can do in terms of getting default risk is to take Moodys annual default rate data, available from their Moodys Annual Default Report. They publish annual figures for investment grade and speculative grade debt (high-yield). We'll manually put those into Python.
+   f. We also need recovery rate data - I found this article placing high-yield at 30% and investment-grade at 40%: https://www.mandg.com/investments/professional-investor/en-ch/insights/mandg-insights/latest-insights/2024/06/are-corporate-bonds-still-profitable
+
+    We'll use those for now and see where it takes us.
+
+   g. So, with our data; annual default rates, recovery rate assumptions, spread between HY-IG, we can now compare the HY-IG spread with the HY-IG expected loss spread from 2016 - 2025. What we should typically see is that the HY-IG OAS exceeds that HY-IG EL, given default risk is not the only premium investors are rewarded for to invest in HY over IG credit.
+
+   From 2016 - 2020, its what we expect. We have HY-IG OAS > EL, and that reflects the other risk premiums investors get for HY over IG - liquidity, procylicality of HY with the economy, information. However, when we come to a stressed environment, 2020-2021, we see that our EL > HY-IG. This would imply that the spread between HY-IG isn't even adequate to cover for default risk. How do we explain this?
+
+   To make the spread between HY-IG cover default risk, we'd need our recovery rate figure to increase, which is nonsensical because recovery rates would actually plummet during a stress scenario such as Covid - the market is flooded with distressed assets, liquidity is tight and assets are being marked down, additionally there will be a long queue of claimaints on defaulted assets.
+
+The reason for this seeming irrationality is due to the default rate we are using and the OAS data we are using. The default rate is an actual, annual figure, representing the amount of defaults throughout the year. When Covid happened, of course, spreads spiked but then relaxed, and we can see that in the graph - this was due to Federal Reserve intervention mostly. However, that didn't mean defaults stopped throughout the year, they continued after spreads relaxed. What we're seeing here is a difference between investor expectations at the time and economic reality. The economic reality is the defaults for 2020 were c.8%, but what were the investor expectations at the time? Well, based on our assumption for recovery rates (40% for IG, 30% for HY - right or wrong?) and the true default rate for 2020, 8%, it seems what investors demand for investing in HY over IG was too optimistic. It actually seems it was by a lot - consider this:
+ a. If we reduce recovery rates during Covid, which is reasonable to expect, then expected loss differential between HY-IG goes even further over the HY-IG spread. This means recovery rate alone can't fix the irrationality we are seeing, but we know it should really reduce during Covid.
+ b. If we place faith in our recovery rates as they are during Covid, which is not too reasonable given earlier arguements, then it must be the case that investors expected a lower default rate than what was actually realised - otherwise there was no incentive to invest in HY over IG as there was no adequate reward for the expected loss.
+ c. So, really, we should reduce recovery rates, which is reasonable, and then determine what sort of default rate investors expected during Covid in order to make it reasonable for them to actually invest in HY over IG.
+
+ Heres the roadmap - what did investors expect in HY-IG spread from 2017 - 2020 (prior to Covid) in order for them to find it reasonable to buy it? We'll get an average distance between HY-IG OAS and HY-IG EL. 
+
+ What we can then do is take that gap, call it "Average Expected Premium for HY over IG", and subtract that from the HY-IG OAS differential and we'll have an equation like this, where we want to solve for the new default rates. We could keep the IG default rate constant, as its not the driving factor here, its more about the HY_default_rate as its stronger.
+
+ (1-0.3)*HY_default_rate - (1-0.4)*IG_default rate = HY-IG OAS during Covid - Average Expected Premium for HY over IG
+
+ 17/05/2026
+
+ We shifted a focus in the last session. Today, we'll aim to conclude this project on Covid and start a write up for it. Once complete, we'll return to our original project related to portfolio rebalancing.
+
+ Last week, we were looking at the expectations of defaults vs. actual defaults during the time of Covid. To examine this, we took the average yield premium of high-yield debt compared to investment-grade debt for the 3 years preceding Covid and assumed that to be the rewad investors expect for taking on the risks of high-yield debt compared to investment grade debt. As mentioned, those risks mostly include default risk, but also liquidity, downgrade and procyclicality risk.
+
+ With that yield premium assumption (limitiation by length of data), we also took the average expected loss differential between high-yield and investment-grade debt using our recovery rate assumptions (limitation on data) and our actual default rates. Taking the difference of those values results in a pre-Covid spread of 72bps. So, what we could assume is that throughout Covid that gap, at minimum, is expected to persist; so we set up an equation as below:
+
+ Expected Loss Differential + Average HY-IG Yield Premium (Pre-Covid) = HY-IG OAS
+ Expected Loss Differential = HY Default Rate * (1 - HY Recovery Rate) - IG Default Rate * (1 - IG Recovery Rate) 
+ = HY-IG OAS - Average HY-IG Yield Premium (Pre-Covid)
+
+The defining equation is
+
+HY Default Rate * (1 - HY Recovery Rate) - IG Default Rate * (1 - IG Recovery Rate) = HY-IG OAS - Average HY-IG Yield Premium (Pre-Covid)
+
+The right-hand side is, of course, able to be calculated based on what we have. For the left-hand side, we can make some assumptions and decide on whether they're reasonable or not:
+
+1. The IG Default Rate * (1- IG Recovery Rate) term is small. This seems reasonable, as investment grade defaults typically remain below 1% and the multiplication by (1-Recovery Rate) will make this term even smaller. So our equation approximates to
+
+   HY Default Rate * (1 - Recovery Rate) = HY-IG OAS - Average HY-IG Yield Premium (Pre-Covid)
+
+2. The data I have access to on recovery rates for high-yield credit is limited. However, from researching a few articles from established financial institutions, its looking as if high-yield hovers around the 40% mark. Of course this will vary depending on whether the debt is senior/junior, secured/unsecured etc so for our study we'll take recovery rates in the range of 60% (senior, secured) all the way down 20% (junior, unsecured). Given we're looking at a wide bucket of high-yield debt (and I do not have the statistics of the composition of that bucket!), we'll let our recovery rates fluctuate around our assumption of 40% recovery +- 10%. We'll be assuming that the recovery rate stays constant throughout the Covid period.
+
+
+So, what are we able to find out here? For a recovery rate assumption, we can find out how the default rate must fluctuate in order to provide an investor with an historically justifiable (the 3 year average premium in excess of expected loss) reward for investing in high-yield debt over investment grade debt. Now, when that default rate fluctuates, we can compare it with the default rate that actually materialised over the Covid period, which was c.8%, and determine whether investor expectations were in line with economic reality (?).
+
+For example, consider a recovery rate of 30%:
+
+1. Investors historically have demanded a premium over investment-grade debt to invest in high-yield debt.
+2. That premium captures default risk mostly, but also liquidity etc.
+3. Assuming a recovery rate of 30%, in order for high-yield debt investors to be rewarded that premium, they must have been expecting an average default rate of 4.66%
+4. Based on the spreads investors accepted during Covid, they were implicitly pricing in a default rate of ~4.66% (at 30% recovery). Since the realised default rate was 8.14%, investors either underestimated defaults or overestimated recovery rates.
+
+6. or — most likely — accepted lower compensation because Fed intervention reduced the perceived risk of holding HY debt. The spread they demanded was rational given the policy backstop, but not rational relative to the economic reality that ultimately materialised. That conclusion is assuming our 30% recovery rate is accurate though.
+7. What we can see from our analysis is that a recovery rate of 60% results in an average default rate of c.8%, which is now in line with what was truly realised. While we can't directly pinpoint the recovery rate for the period, what we can say is that for investor expectations to be in line with the true economic reality that materialised, they'd need to have assumed a recovery rate of ~60%, which is more consistent with senior secured debt in benign market conditions. During a systemic stress event like Covid, where distressed asset markets were flooded and liquidity was severely impaired, a 60% recovery rate is implausibly optimistic — which brings us back to the conclusion that Fed intervention was the more likely explanation for why investors accepted spreads that, in hindsight, did not adequately compensate for realised default risk.
+
+
+We'll do a write up on the above study on Substack I reckon. I think the key point is the investor expectations being out of step with what economically materialised. This resulted in investors accepting a lower spread based on their perception of default rates, however we'd need to understand this in tandem with the Federal Reserve backstop during the time. Investor expectations on default rates possibly included an allowance for Fed backstopping. Thats to be fleshed out another time I guess.
+
+Back to the original project!
+
+
+
+
+
+
+
+
+
+   
+
+
+
+
+
+
+
 
 
 
